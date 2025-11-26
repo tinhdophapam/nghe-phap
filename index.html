@@ -3,19 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Audio Lectures Player</title>
+    <title>Tịnh Độ Pháp Âm - Audio Player</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;700;900&family=Crimson+Text:wght@400;600;700&display=swap" rel="stylesheet">
+    <meta name="description" content="Website nghe pháp âm Tịnh Độ - Thầy Thích Chân Hiếu">
 </head>
 <body>
     <div class="app-container">
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <h1><i class="fas fa-headphones"></i> Audio Lectures</h1>
+                <div class="logo-section">
+                    <div class="logo-icon">
+                        <img src="Title Logo.webp" alt="Tịnh Độ Pháp Âm">
+                    </div>
+                </div>
                 <button class="theme-toggle" id="themeToggle" title="Toggle Dark/Light Mode">
                     <i class="fas fa-moon"></i>
                 </button>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <i class="fas fa-music"></i>
+                    <span id="totalTracks">0</span> bài
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-heart"></i>
+                    <span id="totalFavorites">0</span> yêu thích
+                </div>
             </div>
             
             <!-- Search Bar -->
@@ -27,26 +47,69 @@
                 </button>
             </div>
 
+            <!-- Filter Tabs -->
+            <div class="filter-tabs">
+                <button class="filter-tab active" data-filter="all">
+                    <i class="fas fa-list"></i> Tất cả
+                </button>
+                <button class="filter-tab" data-filter="favorites">
+                    <i class="fas fa-heart"></i> Yêu thích
+                </button>
+                <button class="filter-tab" data-filter="recent">
+                    <i class="fas fa-history"></i> Gần đây
+                </button>
+            </div>
+
             <!-- Playlist -->
             <div class="playlist" id="playlist">
                 <div class="loading">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    <p>Đang tải danh sách...</p>
+                    <div class="skeleton-loader">
+                        <div class="skeleton-item"></div>
+                        <div class="skeleton-item"></div>
+                        <div class="skeleton-item"></div>
+                    </div>
                 </div>
             </div>
         </aside>
 
         <!-- Main Content -->
         <main class="main-content">
+            <!-- Animated Background -->
+            <div class="animated-bg"></div>
+
+            <!-- Buddha Name Section -->
+            <div class="buddha-name-section">
+                <h1 class="buddha-name">Nam Mô A Di Đà Phật</h1>
+            </div>
+
+            <!-- Slogan Section -->
+            <div class="slogan-section">
+                <img src="Slogan.png" alt="Slogan" class="slogan-image">
+            </div>
+
             <!-- Player Section -->
             <div class="player-section">
                 <div class="player-info">
                     <div class="album-art">
-                        <i class="fas fa-music"></i>
+                        <div class="album-art-inner">
+                            <i class="fas fa-dharmachakra"></i>
+                            <div class="vinyl-effect"></div>
+                        </div>
+                        <button class="favorite-btn" id="favoriteBtn" title="Thêm vào yêu thích">
+                            <i class="far fa-heart"></i>
+                        </button>
                     </div>
                     <div class="track-info">
                         <h2 id="trackTitle">Chọn bài giảng để phát</h2>
                         <p id="trackFolder">---</p>
+                        <div class="track-actions">
+                            <button class="action-btn" id="shareBtn" title="Chia sẻ">
+                                <i class="fas fa-share-alt"></i>
+                            </button>
+                            <button class="action-btn" id="downloadBtn" title="Tải xuống">
+                                <i class="fas fa-download"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -65,6 +128,9 @@
 
                 <!-- Controls -->
                 <div class="controls">
+                    <button class="control-btn secondary" id="shuffleBtn" title="Shuffle">
+                        <i class="fas fa-random"></i>
+                    </button>
                     <button class="control-btn" id="prevBtn" title="Previous (Arrow Left)">
                         <i class="fas fa-step-backward"></i>
                     </button>
@@ -74,9 +140,12 @@
                     <button class="control-btn" id="nextBtn" title="Next (Arrow Right)">
                         <i class="fas fa-step-forward"></i>
                     </button>
+                    <button class="control-btn secondary" id="repeatBtn" title="Repeat">
+                        <i class="fas fa-redo"></i>
+                    </button>
                     
                     <div class="volume-control">
-                        <button class="control-btn" id="muteBtn" title="Mute/Unmute">
+                        <button class="control-btn" id="muteBtn" title="Mute/Unmute (M)">
                             <i class="fas fa-volume-up"></i>
                         </button>
                         <input type="range" id="volumeSlider" min="0" max="100" value="80" class="volume-slider">
@@ -94,6 +163,10 @@
                             <button data-speed="2">2.0x</button>
                         </div>
                     </div>
+
+                    <button class="control-btn secondary" id="queueBtn" title="Queue">
+                        <i class="fas fa-list-ul"></i>
+                    </button>
                 </div>
 
                 <!-- Error Message -->
@@ -111,9 +184,60 @@
                     <div><kbd>←</kbd> Tua lùi 10s</div>
                     <div><kbd>→</kbd> Tua tới 10s</div>
                     <div><kbd>M</kbd> Mute/Unmute</div>
+                    <div><kbd>S</kbd> Shuffle</div>
+                    <div><kbd>R</kbd> Repeat</div>
                 </div>
             </div>
+
+            <!-- Lotus Decoration -->
+            <div class="lotus-decoration">
+                <img src="hoasen.png" alt="Hoa Sen">
+            </div>
         </main>
+
+        <!-- Queue Panel -->
+        <div class="queue-panel" id="queuePanel">
+            <div class="queue-header">
+                <h3><i class="fas fa-list-ul"></i> Hàng đợi phát</h3>
+                <button class="close-queue" id="closeQueue">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="queue-content" id="queueContent">
+                <p class="empty-queue">Chưa có bài nào trong hàng đợi</p>
+            </div>
+        </div>
+
+        <!-- Share Modal -->
+        <div class="modal" id="shareModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-share-alt"></i> Chia sẻ</h3>
+                    <button class="close-modal" id="closeShareModal">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="share-link">
+                        <input type="text" id="shareLink" readonly>
+                        <button id="copyLink" class="copy-btn">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                    </div>
+                    <div class="share-buttons">
+                        <button class="share-btn facebook" id="shareFacebook">
+                            <i class="fab fa-facebook"></i> Facebook
+                        </button>
+                        <button class="share-btn twitter" id="shareTwitter">
+                            <i class="fab fa-twitter"></i> Twitter
+                        </button>
+                        <button class="share-btn whatsapp" id="shareWhatsapp">
+                            <i class="fab fa-whatsapp"></i> WhatsApp
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="app.js"></script>

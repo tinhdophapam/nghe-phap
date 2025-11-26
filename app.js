@@ -7,6 +7,8 @@ class AudioPlayer {
         this.playBtn = document.getElementById('playBtn');
         this.prevBtn = document.getElementById('prevBtn');
         this.nextBtn = document.getElementById('nextBtn');
+        this.shuffleBtn = document.getElementById('shuffleBtn');
+        this.repeatBtn = document.getElementById('repeatBtn');
         this.progressBar = document.getElementById('progressBar');
         this.progressFill = document.getElementById('progressFill');
         this.progressHandle = document.getElementById('progressHandle');
@@ -24,12 +26,31 @@ class AudioPlayer {
         this.themeToggle = document.getElementById('themeToggle');
         this.errorMessage = document.getElementById('errorMessage');
         this.errorText = document.getElementById('errorText');
+        this.favoriteBtn = document.getElementById('favoriteBtn');
+        this.shareBtn = document.getElementById('shareBtn');
+        this.downloadBtn = document.getElementById('downloadBtn');
+        this.queueBtn = document.getElementById('queueBtn');
+        this.queuePanel = document.getElementById('queuePanel');
+        this.closeQueue = document.getElementById('closeQueue');
+        this.queueContent = document.getElementById('queueContent');
+        this.shareModal = document.getElementById('shareModal');
+        this.closeShareModal = document.getElementById('closeShareModal');
+        this.shareLink = document.getElementById('shareLink');
+        this.copyLink = document.getElementById('copyLink');
+        this.totalTracks = document.getElementById('totalTracks');
+        this.totalFavorites = document.getElementById('totalFavorites');
 
         // State
         this.lectures = [];
         this.flatPlaylist = [];
         this.currentIndex = -1;
         this.isDragging = false;
+        this.isShuffled = false;
+        this.repeatMode = 'off'; // off, one, all
+        this.favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+        this.recentlyPlayed = JSON.parse(localStorage.getItem('recentlyPlayed')) || [];
+        this.queue = [];
+        this.currentFilter = 'all';
 
         // Initialize
         this.init();
@@ -40,6 +61,57 @@ class AudioPlayer {
         this.setupEventListeners();
         this.loadState();
         this.applyTheme();
+        this.updateStats();
+        this.initBuddhaText();
+    }
+
+    // ===== Buddha Text Animation =====
+    initBuddhaText() {
+        const buddhaNameEl = document.querySelector('.buddha-name');
+        if (!buddhaNameEl) return;
+
+        const text = 'Nam Mô A Di Đà Phật';
+        const words = text.split(' ').filter(w => w.length > 0);
+        
+        // 6 màu theo thứ tự từ Flutter
+        const colors = [
+            '#D84315', // Đỏ cam
+            '#C62828', // Đỏ thẫm
+            '#2E7D32', // Xanh lá
+            '#00838F', // Xanh ngọc
+            '#1565C0', // Xanh dương
+            '#6A1B9A', // Tím
+        ];
+
+        let currentWordIndex = 0;
+        let colorIndex = 0;
+        let cycleCount = 0;
+
+        const updateText = () => {
+            // Hiển thị từ đầu đến từ hiện tại
+            const displayText = words.slice(0, currentWordIndex + 1).join(' ');
+            buddhaNameEl.textContent = displayText;
+            buddhaNameEl.style.color = colors[colorIndex];
+
+            // Chuyển sang từ tiếp theo
+            currentWordIndex++;
+
+            // Nếu hết chuỗi, quay về đầu
+            if (currentWordIndex >= words.length) {
+                currentWordIndex = 0;
+                cycleCount++;
+
+                // Sau 10 lần chạy hết chuỗi thì đổi màu
+                if (cycleCount >= 10) {
+                    colorIndex = (colorIndex + 1) % colors.length;
+                    cycleCount = 0;
+                }
+            }
+        };
+
+        // Chạy mỗi 1 giây (1000ms)
+        updateText(); // Hiển thị ngay lần đầu
+        setInterval(updateText, 1000);
     }
 
     // ===== Load Lectures from JSON =====
@@ -86,6 +158,48 @@ class AudioPlayer {
     // ===== Render Playlist =====
     renderPlaylist(searchTerm = '') {
         this.playlist.innerHTML = '';
+
+        // Filter based on current filter
+        let itemsToShow = this.flatPlaylist;
+        
+        if (this.currentFilter === 'favorites') {
+            itemsToShow = this.favorites;
+            if (itemsToShow.length === 0) {
+                this.playlist.innerHTML = '<div class="loading"><p>Chưa có bài yêu thích nào</p></div>';
+                return;
+            }
+        } else if (this.currentFilter === 'recent') {
+            itemsToShow = this.recentlyPlayed;
+            if (itemsToShow.length === 0) {
+                this.playlist.innerHTML = '<div class="loading"><p>Chưa có lịch sử nghe</p></div>';
+                return;
+            }
+        }
+
+        // For favorites and recent, show flat list
+        if (this.currentFilter !== 'all') {
+            itemsToShow.forEach(item => {
+                if (searchTerm && !item.title.toLowerCase().includes(searchTerm.toLowerCase())) {
+                    return;
+                }
+
+                const trackEl = document.createElement('div');
+                trackEl.className = 'track-item';
+                trackEl.innerHTML = `
+                    <span class="track-title">${item.title}</span>
+                    <span class="track-duration">${item.duration || ''}</span>
+                `;
+
+                const flatIndex = this.flatPlaylist.findIndex(t => t.url === item.url);
+                trackEl.addEventListener('click', () => {
+                    this.playTrack(flatIndex);
+                });
+
+                this.playlist.appendChild(trackEl);
+            });
+            this.updateActiveTrack();
+            return;
+        }
 
         this.lectures.forEach((folder, folderIndex) => {
             const folderEl = document.createElement('div');
@@ -192,7 +306,14 @@ class AudioPlayer {
 
         this.updateActiveTrack();
         this.scrollToActiveTrack();
+        this.updateFavoriteButton();
+        this.addToRecentlyPlayed(track);
+        this.updateQueue();
         this.saveState();
+        
+        // Add playing animation to album art
+        const albumArt = document.querySelector('.album-art-inner');
+        if (albumArt) albumArt.classList.add('playing');
     }
 
     // ===== Update Active Track Highlight =====
@@ -393,6 +514,22 @@ class AudioPlayer {
             this.setSpeed(parseFloat(savedSpeed));
         }
 
+        // Load shuffle state
+        const savedShuffle = localStorage.getItem('shuffle');
+        if (savedShuffle === 'true') {
+            this.isShuffled = true;
+            this.shuffleBtn.classList.add('active');
+        }
+
+        // Load repeat mode
+        const savedRepeat = localStorage.getItem('repeatMode');
+        if (savedRepeat) {
+            this.repeatMode = savedRepeat;
+            if (this.repeatMode !== 'off') {
+                this.repeatBtn.classList.add('active');
+            }
+        }
+
         // Load player state
         const savedState = localStorage.getItem('playerState');
         if (savedState) {
@@ -420,17 +557,21 @@ class AudioPlayer {
         this.playBtn.addEventListener('click', () => this.togglePlay());
         this.audio.addEventListener('play', () => {
             this.playBtn.querySelector('i').className = 'fas fa-pause';
+            const albumArt = document.querySelector('.album-art-inner');
+            if (albumArt) albumArt.classList.add('playing');
         });
         this.audio.addEventListener('pause', () => {
             this.playBtn.querySelector('i').className = 'fas fa-play';
+            const albumArt = document.querySelector('.album-art-inner');
+            if (albumArt) albumArt.classList.remove('playing');
         });
 
         // Previous/Next
         this.prevBtn.addEventListener('click', () => this.prevTrack());
         this.nextBtn.addEventListener('click', () => this.nextTrack());
 
-        // Auto play next
-        this.audio.addEventListener('ended', () => this.nextTrack());
+        // Auto play next with shuffle/repeat support
+        this.audio.addEventListener('ended', () => this.nextTrackEnhanced());
 
         // Progress
         this.audio.addEventListener('timeupdate', () => {
@@ -483,6 +624,34 @@ class AudioPlayer {
         // Theme
         this.themeToggle.addEventListener('click', () => this.toggleTheme());
 
+        // Shuffle & Repeat
+        this.shuffleBtn.addEventListener('click', () => this.toggleShuffle());
+        this.repeatBtn.addEventListener('click', () => this.toggleRepeat());
+
+        // Favorite
+        this.favoriteBtn.addEventListener('click', () => this.toggleFavorite());
+
+        // Share
+        this.shareBtn.addEventListener('click', () => this.openShareModal());
+        this.closeShareModal.addEventListener('click', () => this.closeShare());
+        this.shareModal.addEventListener('click', (e) => {
+            if (e.target === this.shareModal) this.closeShare();
+        });
+        this.copyLink.addEventListener('click', () => this.copyShareLink());
+        document.getElementById('shareFacebook').addEventListener('click', () => this.shareToSocial('facebook'));
+        document.getElementById('shareTwitter').addEventListener('click', () => this.shareToSocial('twitter'));
+        document.getElementById('shareWhatsapp').addEventListener('click', () => this.shareToSocial('whatsapp'));
+
+        // Download
+        this.downloadBtn.addEventListener('click', () => this.downloadTrack());
+
+        // Queue
+        this.queueBtn.addEventListener('click', () => this.toggleQueue());
+        this.closeQueue.addEventListener('click', () => this.queuePanel.classList.remove('show'));
+
+        // Filter tabs
+        this.setupFilterTabs();
+
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             // Ignore if typing in search
@@ -504,6 +673,14 @@ class AudioPlayer {
                 case 'KeyM':
                     e.preventDefault();
                     this.toggleMute();
+                    break;
+                case 'KeyS':
+                    e.preventDefault();
+                    this.toggleShuffle();
+                    break;
+                case 'KeyR':
+                    e.preventDefault();
+                    this.toggleRepeat();
                     break;
             }
         });
@@ -527,6 +704,219 @@ class AudioPlayer {
             }
             this.showError(errorMsg);
         });
+    }
+
+    // ===== Shuffle =====
+    toggleShuffle() {
+        this.isShuffled = !this.isShuffled;
+        this.shuffleBtn.classList.toggle('active');
+        localStorage.setItem('shuffle', this.isShuffled);
+    }
+
+    // ===== Repeat =====
+    toggleRepeat() {
+        const modes = ['off', 'all', 'one'];
+        const currentIndex = modes.indexOf(this.repeatMode);
+        this.repeatMode = modes[(currentIndex + 1) % modes.length];
+        
+        this.repeatBtn.classList.toggle('active', this.repeatMode !== 'off');
+        const icon = this.repeatBtn.querySelector('i');
+        
+        if (this.repeatMode === 'one') {
+            icon.className = 'fas fa-redo';
+            this.repeatBtn.innerHTML = '<i class="fas fa-redo"></i><span style="position:absolute;font-size:0.6rem;bottom:8px;">1</span>';
+        } else {
+            icon.className = 'fas fa-redo';
+        }
+        
+        localStorage.setItem('repeatMode', this.repeatMode);
+    }
+
+    // ===== Favorites =====
+    toggleFavorite() {
+        if (this.currentIndex === -1) return;
+        
+        const track = this.flatPlaylist[this.currentIndex];
+        const index = this.favorites.findIndex(f => f.url === track.url);
+        
+        if (index >= 0) {
+            this.favorites.splice(index, 1);
+            this.favoriteBtn.classList.remove('active');
+            this.favoriteBtn.querySelector('i').className = 'far fa-heart';
+        } else {
+            this.favorites.push(track);
+            this.favoriteBtn.classList.add('active');
+            this.favoriteBtn.querySelector('i').className = 'fas fa-heart';
+        }
+        
+        localStorage.setItem('favorites', JSON.stringify(this.favorites));
+        this.updateStats();
+        
+        if (this.currentFilter === 'favorites') {
+            this.renderPlaylist();
+        }
+    }
+
+    updateFavoriteButton() {
+        if (this.currentIndex === -1) return;
+        
+        const track = this.flatPlaylist[this.currentIndex];
+        const isFavorite = this.favorites.some(f => f.url === track.url);
+        
+        this.favoriteBtn.classList.toggle('active', isFavorite);
+        this.favoriteBtn.querySelector('i').className = isFavorite ? 'fas fa-heart' : 'far fa-heart';
+    }
+
+    // ===== Recently Played =====
+    addToRecentlyPlayed(track) {
+        this.recentlyPlayed = this.recentlyPlayed.filter(t => t.url !== track.url);
+        this.recentlyPlayed.unshift(track);
+        this.recentlyPlayed = this.recentlyPlayed.slice(0, 20);
+        localStorage.setItem('recentlyPlayed', JSON.stringify(this.recentlyPlayed));
+    }
+
+    // ===== Queue Management =====
+    toggleQueue() {
+        this.queuePanel.classList.toggle('show');
+        this.updateQueue();
+    }
+
+    updateQueue() {
+        if (this.flatPlaylist.length === 0) {
+            this.queueContent.innerHTML = '<p class="empty-queue">Chưa có bài nào trong hàng đợi</p>';
+            return;
+        }
+
+        let html = '';
+        const startIndex = this.currentIndex >= 0 ? this.currentIndex : 0;
+        const queueItems = this.flatPlaylist.slice(startIndex, startIndex + 10);
+
+        queueItems.forEach((track, idx) => {
+            const actualIndex = startIndex + idx;
+            const isPlaying = actualIndex === this.currentIndex;
+            html += `
+                <div class="queue-item ${isPlaying ? 'playing' : ''}" data-index="${actualIndex}">
+                    <div class="queue-item-info">
+                        <div class="queue-item-title">${track.title}</div>
+                        <div class="queue-item-duration">${track.duration || ''}</div>
+                    </div>
+                    ${isPlaying ? '<i class="fas fa-volume-up"></i>' : ''}
+                </div>
+            `;
+        });
+
+        this.queueContent.innerHTML = html;
+
+        document.querySelectorAll('.queue-item').forEach(el => {
+            el.addEventListener('click', () => {
+                const index = parseInt(el.dataset.index);
+                this.playTrack(index);
+            });
+        });
+    }
+
+    // ===== Share =====
+    openShareModal() {
+        if (this.currentIndex === -1) return;
+        
+        const track = this.flatPlaylist[this.currentIndex];
+        const url = window.location.href.split('?')[0] + '?track=' + encodeURIComponent(track.url);
+        this.shareLink.value = url;
+        this.shareModal.classList.add('show');
+    }
+
+    closeShare() {
+        this.shareModal.classList.remove('show');
+    }
+
+    copyShareLink() {
+        this.shareLink.select();
+        document.execCommand('copy');
+        
+        const btn = this.copyLink;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i> Đã copy!';
+        btn.classList.add('copied');
+        
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.classList.remove('copied');
+        }, 2000);
+    }
+
+    shareToSocial(platform) {
+        if (this.currentIndex === -1) return;
+        
+        const track = this.flatPlaylist[this.currentIndex];
+        const url = window.location.href.split('?')[0];
+        const text = `Đang nghe: ${track.title} - ${track.folder}`;
+        
+        let shareUrl = '';
+        switch(platform) {
+            case 'facebook':
+                shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+                break;
+            case 'twitter':
+                shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+                break;
+            case 'whatsapp':
+                shareUrl = `https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`;
+                break;
+        }
+        
+        if (shareUrl) {
+            window.open(shareUrl, '_blank', 'width=600,height=400');
+        }
+    }
+
+    // ===== Download =====
+    downloadTrack() {
+        if (this.currentIndex === -1) return;
+        
+        const track = this.flatPlaylist[this.currentIndex];
+        const a = document.createElement('a');
+        a.href = track.url;
+        a.download = track.title + '.mp3';
+        a.target = '_blank';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    // ===== Filter Tabs =====
+    setupFilterTabs() {
+        document.querySelectorAll('.filter-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                this.currentFilter = tab.dataset.filter;
+                this.renderPlaylist();
+            });
+        });
+    }
+
+    // ===== Stats =====
+    updateStats() {
+        this.totalTracks.textContent = this.flatPlaylist.length;
+        this.totalFavorites.textContent = this.favorites.length;
+    }
+
+    // ===== Enhanced Next Track with Shuffle/Repeat =====
+    nextTrackEnhanced() {
+        if (this.repeatMode === 'one') {
+            this.audio.currentTime = 0;
+            this.audio.play();
+            return;
+        }
+
+        if (this.isShuffled) {
+            const randomIndex = Math.floor(Math.random() * this.flatPlaylist.length);
+            this.playTrack(randomIndex);
+        } else if (this.currentIndex < this.flatPlaylist.length - 1) {
+            this.playTrack(this.currentIndex + 1);
+        } else if (this.repeatMode === 'all') {
+            this.playTrack(0);
+        }
     }
 }
 

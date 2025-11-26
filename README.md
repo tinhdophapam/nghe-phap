@@ -7,16 +7,24 @@ Website phát audio chuyên nghiệp với giao diện hiện đại, được x
 ### 🎵 Audio Player
 - **Play/Pause** - Phát và tạm dừng audio
 - **Next/Previous** - Chuyển bài tiếp theo/trước đó
+- **Shuffle Mode** - Phát ngẫu nhiên
+- **Repeat Mode** - Lặp lại (Off/All/One)
 - **Progress Bar** - Thanh tiến trình với khả năng tua
 - **Volume Control** - Điều chỉnh âm lượng và mute/unmute
 - **Playback Speed** - Tốc độ phát: 0.75x, 1x, 1.25x, 1.5x, 2.0x
+- **Waveform Visualization** - Hiển thị sóng âm thanh động
 - **Auto Play Next** - Tự động phát bài tiếp theo khi kết thúc
 
-### 📚 Playlist
+### 📚 Playlist & Library
 - **Tree Structure** - Hiển thị theo cấu trúc folder/subfolder có thể collapse/expand
 - **Search** - Tìm kiếm real-time theo tên bài giảng
+- **Filter Tabs** - Lọc: Tất cả / Yêu thích / Gần đây
+- **Favorites** - Đánh dấu bài yêu thích
+- **Recently Played** - Lịch sử nghe gần đây (20 bài)
+- **Queue Management** - Quản lý hàng đợi phát
 - **Active Highlight** - Đánh dấu bài đang phát
 - **Auto Scroll** - Tự động cuộn đến bài đang phát
+- **Statistics** - Hiển thị tổng số bài và yêu thích
 
 ### 💾 State Management
 - **LocalStorage** - Lưu trạng thái phát
@@ -28,12 +36,23 @@ Website phát audio chuyên nghiệp với giao diện hiện đại, được x
 - **Responsive Design** - Tương thích mobile hoàn chỉnh
 - **Modern UI** - Giao diện đẹp với hiệu ứng mượt mà
 - **Smooth Animations** - Transition và hover effects
+- **Animated Background** - Nền gradient động
+- **Vinyl Effect** - Hiệu ứng đĩa than quay khi phát nhạc
+- **Skeleton Loading** - Loading screens đẹp mắt
+- **Logo Animation** - Logo quay tròn liên tục
+
+### 🔗 Social & Sharing
+- **Share** - Chia sẻ bài giảng qua Facebook, Twitter, WhatsApp
+- **Copy Link** - Copy link trực tiếp
+- **Download** - Tải xuống file audio
 
 ### ⌨️ Keyboard Shortcuts
 - `Space` - Play/Pause
 - `←` - Tua lùi 10 giây
 - `→` - Tua tới 10 giây
 - `M` - Mute/Unmute
+- `S` - Toggle Shuffle
+- `R` - Toggle Repeat
 
 ### 🛡️ Error Handling
 - Hiển thị thông báo lỗi rõ ràng
