@@ -938,7 +938,7 @@ class AudioPlayer {
         // Handle navigation
         switch(nav) {
             case 'playlist':
-                // Show playlist view (same content as sidebar, but in main area)
+                // Show playlist view
                 document.getElementById('playlistView').classList.add('active');
                 this.renderPlaylistView();
                 break;
@@ -1109,7 +1109,7 @@ class AudioPlayer {
                             // Render library view with the selected subfolder
                             this.renderLibraryView();
                         } else {
-                            // On desktop: Navigate in sidebar
+                            // On desktop: Navigate to subfolder
                             this.navigateToSubfolders(item.folderIndex);
                             this.navigateToLectures(item.subfolderIndex);
                         }
