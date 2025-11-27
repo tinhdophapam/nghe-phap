@@ -202,9 +202,6 @@ class AudioPlayer {
         } else if (this.currentFilter === 'recent') {
             this.renderRecents(searchTerm);
             return;
-        } else if (this.currentFilter === 'queue') {
-            this.renderQueue();
-            return;
         }
 
         // Render based on current view
@@ -971,6 +968,11 @@ class AudioPlayer {
                 // Keep player view visible on desktop
                 document.getElementById('playerView').classList.add('active');
                 break;
+            case 'queue':
+                // Show queue view
+                document.getElementById('queueView').classList.add('active');
+                this.renderQueueView();
+                break;
             case 'library':
                 // Show library view
                 document.getElementById('libraryView').classList.add('active');
@@ -1735,14 +1737,17 @@ class AudioPlayer {
         });
     }
 
-    // ===== Render Queue in Sidebar =====
-    renderQueue() {
+    // ===== Render Queue View =====
+    renderQueueView() {
+        const queueViewContent = document.getElementById('queueViewContent');
+        if (!queueViewContent) return;
+
         if (this.flatPlaylist.length === 0 || this.currentIndex < 0) {
-            this.playlist.innerHTML = '<div class="empty-message"><p>Chưa có bài nào trong hàng đợi</p></div>';
+            queueViewContent.innerHTML = '<div class="empty-message"><p>Chưa có bài nào trong hàng đợi</p></div>';
             return;
         }
 
-        let html = '<div class="queue-list">';
+        let html = '';
         const startIndex = this.currentIndex;
         const queueItems = this.flatPlaylist.slice(startIndex);
 
@@ -1750,7 +1755,7 @@ class AudioPlayer {
             const actualIndex = startIndex + idx;
             const isPlaying = actualIndex === this.currentIndex;
             html += `
-                <div class="track-item ${isPlaying ? 'active' : ''}" data-index="${actualIndex}">
+                <div class="track-item ${isPlaying ? 'playing' : ''}" data-index="${actualIndex}">
                     <div class="track-icon">
                         ${isPlaying ? '<i class="fas fa-volume-up"></i>' : '<i class="fas fa-music"></i>'}
                     </div>
@@ -1765,11 +1770,10 @@ class AudioPlayer {
             `;
         });
 
-        html += '</div>';
-        this.playlist.innerHTML = html;
+        queueViewContent.innerHTML = html;
 
         // Add click listeners
-        document.querySelectorAll('.track-item').forEach(el => {
+        queueViewContent.querySelectorAll('.track-item').forEach(el => {
             el.addEventListener('click', () => {
                 const index = parseInt(el.dataset.index);
                 this.playTrack(index);
