@@ -56,9 +56,14 @@ class AudioPlayer {
         this.miniProgressBar = document.getElementById('miniProgressBar');
         this.miniProgressFill = document.getElementById('miniProgressFill');
         this.miniPlayerContent = document.getElementById('miniPlayerContent');
+        this.miniPlayerInfo = document.querySelector('.mini-player-info');
         
         // Bottom Nav
         this.bottomNav = document.getElementById('bottomNav');
+        
+        // Swipe gesture state
+        this.touchStartY = 0;
+        this.touchEndY = 0;
 
         // State
         this.lectures = [];
@@ -544,11 +549,6 @@ class AudioPlayer {
     showMiniPlayer() {
         if (this.miniPlayer && window.innerWidth <= 968) {
             this.miniPlayer.classList.add('show');
-            // Minimize full player on mobile
-            const playerSection = document.querySelector('.player-section');
-            if (playerSection) {
-                playerSection.classList.add('minimized');
-            }
         }
     }
 
@@ -562,13 +562,15 @@ class AudioPlayer {
         this.currentIndex = -1;
         this.trackTitle.textContent = 'Chọn bài giảng để phát';
         this.trackFolder.textContent = '---';
+        if (this.miniTrackTitle) {
+            this.miniTrackTitle.textContent = 'Chọn bài giảng';
+        }
     }
 
     openFullPlayer() {
         if (window.innerWidth <= 968) {
             const playerSection = document.querySelector('.player-section');
             if (playerSection) {
-                playerSection.classList.remove('minimized');
                 playerSection.classList.add('fullscreen');
                 
                 // Add close button for fullscreen
@@ -579,6 +581,11 @@ class AudioPlayer {
                     closeBtn.addEventListener('click', () => this.closeFullPlayer());
                     playerSection.insertBefore(closeBtn, playerSection.firstChild);
                 }
+                
+                // Hide mini player when full player is open
+                if (this.miniPlayer) {
+                    this.miniPlayer.style.display = 'none';
+                }
             }
         }
     }
@@ -587,8 +594,38 @@ class AudioPlayer {
         const playerSection = document.querySelector('.player-section');
         if (playerSection) {
             playerSection.classList.remove('fullscreen');
-            playerSection.classList.add('minimized');
         }
+        // Show mini player again
+        if (this.miniPlayer) {
+            this.miniPlayer.style.display = 'block';
+        }
+    }
+
+    setupSwipeGesture() {
+        const playerSection = document.querySelector('.player-section');
+        if (!playerSection) return;
+
+        playerSection.addEventListener('touchstart', (e) => {
+            if (playerSection.classList.contains('fullscreen')) {
+                this.touchStartY = e.touches[0].clientY;
+            }
+        }, { passive: true });
+
+        playerSection.addEventListener('touchmove', (e) => {
+            if (playerSection.classList.contains('fullscreen')) {
+                this.touchEndY = e.touches[0].clientY;
+            }
+        }, { passive: true });
+
+        playerSection.addEventListener('touchend', () => {
+            if (playerSection.classList.contains('fullscreen')) {
+                const swipeDistance = this.touchEndY - this.touchStartY;
+                // If swipe down more than 100px, close full player
+                if (swipeDistance > 100) {
+                    this.closeFullPlayer();
+                }
+            }
+        }, { passive: true });
     }
 
     seekMini(e) {
@@ -833,8 +870,8 @@ class AudioPlayer {
                 this.closeMiniPlayer();
             });
         }
-        if (this.miniPlayerContent) {
-            this.miniPlayerContent.addEventListener('click', () => {
+        if (this.miniPlayerInfo) {
+            this.miniPlayerInfo.addEventListener('click', () => {
                 this.openFullPlayer();
             });
         }
@@ -844,6 +881,9 @@ class AudioPlayer {
                 this.seekMini(e);
             });
         }
+
+        // Swipe down to close full player
+        this.setupSwipeGesture();
 
         // Bottom Navigation
         if (this.bottomNav) {

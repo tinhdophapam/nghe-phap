@@ -1257,7 +1257,6 @@ kbd {
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    cursor: pointer;
 }
 
 .mini-player-info {
@@ -1266,6 +1265,7 @@ kbd {
     gap: 0.75rem;
     flex: 1;
     min-width: 0;
+    cursor: pointer;
 }
 
 .mini-album-art {
@@ -1312,37 +1312,44 @@ kbd {
 }
 
 .mini-control-btn {
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border);
-    color: var(--text-primary);
-    width: 38px;
-    height: 38px;
+    background: rgba(255, 149, 0, 0.15);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all var(--transition);
-    font-size: 0.9rem;
+    font-size: 1rem;
+    flex-shrink: 0;
 }
 
 .mini-control-btn:active {
     transform: scale(0.95);
+    background: var(--accent);
+    color: white;
 }
 
 .mini-play-btn {
-    width: 42px;
-    height: 42px;
+    width: 48px;
+    height: 48px;
     background: var(--accent);
     border-color: var(--accent);
     color: white;
-    font-size: 1rem;
+    font-size: 1.1rem;
+    box-shadow: 0 2px 8px rgba(255, 149, 0, 0.4);
 }
 
 .mini-control-btn:last-child {
     background: transparent;
-    border: none;
+    border: 1px solid var(--border);
     color: var(--text-secondary);
+    width: 36px;
+    height: 36px;
+    font-size: 0.9rem;
 }
 
 /* ===== Bottom Navigation Bar (Mobile) ===== */
@@ -1421,40 +1428,59 @@ kbd {
         height: calc(100vh - 120px);
     }
 
-    /* Hide full player on mobile when mini player is active */
-    .player-section.minimized {
+    /* Hide full player sections on mobile by default */
+    .buddha-name-section,
+    .slogan-section,
+    .player-section,
+    .shortcuts-info,
+    .lotus-decoration {
         display: none;
     }
 
     /* Full player modal on mobile */
     .player-section.fullscreen {
+        display: flex !important;
+        flex-direction: column;
         position: fixed;
-        top: 60px;
+        top: 0;
         left: 0;
         right: 0;
-        bottom: 60px;
+        bottom: 0;
         max-width: 100%;
         border-radius: 0;
         z-index: 1100;
         overflow-y: auto;
         margin: 0;
+        padding: 3rem 1.5rem 2rem;
+        background: var(--bg-primary);
+    }
+
+    .player-section.fullscreen ~ .buddha-name-section,
+    .player-section.fullscreen ~ .slogan-section {
+        display: block;
+    }
+
+    /* Show sections inside main-content when fullscreen */
+    .main-content:has(.player-section.fullscreen) .buddha-name-section,
+    .main-content:has(.player-section.fullscreen) .slogan-section {
+        display: block;
     }
 
     .close-fullscreen {
-        position: absolute;
+        position: fixed;
         top: 1rem;
-        right: 1rem;
+        left: 1rem;
         background: var(--bg-tertiary);
         border: 1px solid var(--border);
         color: var(--text-primary);
-        width: 40px;
-        height: 40px;
+        width: 44px;
+        height: 44px;
         border-radius: 50%;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.2rem;
+        font-size: 1.3rem;
         z-index: 10;
         transition: all var(--transition);
     }
@@ -1464,33 +1490,65 @@ kbd {
         color: white;
         transform: scale(0.95);
     }
+
+    /* Swipe indicator for full player */
+    .player-section.fullscreen::before {
+        content: '';
+        position: absolute;
+        top: 0.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 40px;
+        height: 4px;
+        background: var(--border);
+        border-radius: 2px;
+    }
 }
 
 @media (max-width: 480px) {
     .mini-player-content {
-        padding: 0.6rem 0.85rem;
+        padding: 0.65rem 0.85rem;
+        gap: 0.75rem;
     }
 
     .mini-album-art {
-        width: 40px;
-        height: 40px;
-        font-size: 1rem;
+        width: 42px;
+        height: 42px;
+        font-size: 1.1rem;
+    }
+
+    .mini-track-info {
+        gap: 0.5rem;
     }
 
     .mini-track-title {
         font-size: 0.85rem;
     }
 
+    .mini-track-time {
+        font-size: 0.7rem;
+    }
+
+    .mini-player-controls {
+        gap: 0.4rem;
+    }
+
     .mini-control-btn {
-        width: 36px;
-        height: 36px;
-        font-size: 0.85rem;
+        width: 38px;
+        height: 38px;
+        font-size: 0.9rem;
     }
 
     .mini-play-btn {
-        width: 40px;
-        height: 40px;
-        font-size: 0.95rem;
+        width: 44px;
+        height: 44px;
+        font-size: 1rem;
+    }
+
+    .mini-control-btn:last-child {
+        width: 34px;
+        height: 34px;
+        font-size: 0.85rem;
     }
 
     .bottom-nav {
