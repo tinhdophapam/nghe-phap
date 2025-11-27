@@ -826,15 +826,19 @@ class AudioPlayer {
         if (window.innerWidth <= 968) {
             console.log('📱 Mobile mode: Showing mini player');
             if (this.miniPlayer) {
+                // ✅ FIX: Use 'block' instead of empty string to override CSS display:none
+                this.miniPlayer.style.display = 'block';
+                // Force reflow for smooth animation
+                this.miniPlayer.offsetHeight;
                 this.miniPlayer.classList.add('show');
-                this.miniPlayer.style.display = ''; // Ensure display is not none
-                console.log('✅ Mini player classList:', this.miniPlayer.classList.toString());
+                console.log('✅ Mini player shown with display:', window.getComputedStyle(this.miniPlayer).display);
             }
         } else {
             console.log('🖥️ Desktop mode: Full player already visible, hiding mini player');
             // On desktop, ensure mini player is hidden
             if (this.miniPlayer) {
                 this.miniPlayer.classList.remove('show');
+                this.miniPlayer.style.display = 'none';
             }
         }
     }
@@ -923,22 +927,54 @@ class AudioPlayer {
         playerSection.addEventListener('touchstart', (e) => {
             if (playerSection.classList.contains('fullscreen')) {
                 this.touchStartY = e.touches[0].clientY;
+                // Only track if touch started near top (swipe-down area)
+                this.canSwipeClose = this.touchStartY < 100;
             }
         }, { passive: true });
 
         playerSection.addEventListener('touchmove', (e) => {
-            if (playerSection.classList.contains('fullscreen')) {
+            if (playerSection.classList.contains('fullscreen') && this.canSwipeClose) {
                 this.touchEndY = e.touches[0].clientY;
+                const swipeDistance = this.touchEndY - this.touchStartY;
+
+                // Visual feedback: move player down and reduce opacity
+                if (swipeDistance > 0) {
+                    const distance = Math.min(swipeDistance, 200);
+                    playerSection.style.transform = `translateY(${distance}px)`;
+                    playerSection.style.opacity = 1 - (distance / 400);
+                    playerSection.style.transition = 'none'; // Disable transition during drag
+                }
             }
         }, { passive: true });
 
         playerSection.addEventListener('touchend', () => {
             if (playerSection.classList.contains('fullscreen')) {
                 const swipeDistance = this.touchEndY - this.touchStartY;
+
+                // Re-enable transition for smooth animation
+                playerSection.style.transition = '';
+
                 // If swipe down more than 100px, close full player
                 if (swipeDistance > 100) {
+                    console.log('⬇️ Swipe down detected, closing full player');
                     this.closeFullPlayer();
+                } else {
+                    // Reset position if swipe was too short
+                    playerSection.style.transform = '';
+                    playerSection.style.opacity = '';
                 }
+
+                this.canSwipeClose = false;
+            }
+        }, { passive: true });
+
+        // Handle touch cancel (e.g., call incoming)
+        playerSection.addEventListener('touchcancel', () => {
+            if (playerSection.classList.contains('fullscreen')) {
+                playerSection.style.transition = '';
+                playerSection.style.transform = '';
+                playerSection.style.opacity = '';
+                this.canSwipeClose = false;
             }
         }, { passive: true });
     }
@@ -1500,26 +1536,31 @@ class AudioPlayer {
         // Click/Touch on mini player info (icon, tên bài, thời gian) to open full player
         // Buttons và progress bar sẽ KHÔNG mở full player
         if (this.miniPlayerInfo) {
-            const handleMiniPlayerInfoClick = (e) => {
-                console.log('🔵 Mini player info clicked:', e.target.className);
+            // Use touchstart for mobile (faster response, no 300ms delay)
+            // Use click for desktop (mouse users)
+            let touchHandled = false;
 
-                // CHỈ mở full player khi click vào .mini-player-info
-                // KHÔNG mở khi click vào buttons
-                if (!e.target.closest('.mini-player-controls')) {
-                    console.log('✅ Opening full player from mini-player-info');
-                    this.openFullPlayer();
-                } else {
-                    console.log('❌ Clicked on controls, not opening');
-                }
-            };
-
-            // Use both click and touchstart for better mobile responsiveness
-            this.miniPlayerInfo.addEventListener('click', handleMiniPlayerInfoClick);
             this.miniPlayerInfo.addEventListener('touchstart', (e) => {
-                console.log('🔵 Mini player info touched');
-                this.openFullPlayer();
-                e.preventDefault(); // Prevent click event from firing
+                if (!e.target.closest('.mini-player-controls')) {
+                    console.log('🔵 Mini player info touched - opening full player');
+                    this.openFullPlayer();
+                    touchHandled = true;
+                    e.preventDefault(); // Prevent click event from firing
+                }
             }, { passive: false });
+
+            // Fallback for desktop/mouse users
+            this.miniPlayerInfo.addEventListener('click', (e) => {
+                if (touchHandled) {
+                    touchHandled = false;
+                    return; // Skip if already handled by touch
+                }
+
+                if (!e.target.closest('.mini-player-controls')) {
+                    console.log('🔵 Mini player info clicked - opening full player');
+                    this.openFullPlayer();
+                }
+            });
         }
         
         // Progress bar seek (separate handler)
