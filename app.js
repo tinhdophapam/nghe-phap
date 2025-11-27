@@ -1114,13 +1114,29 @@ class AudioPlayer {
                 // Click to navigate to that subfolder
                 subfolderCard.addEventListener('click', (e) => {
                     if (!e.target.closest('.folder-remove-btn')) {
-                        // Navigate to that subfolder in sidebar
-                        this.navigateToSubfolders(item.folderIndex);
-                        this.navigateToLectures(item.subfolderIndex);
-                        // Close playlist view, show sidebar on mobile
+                        // Navigate to that subfolder in Library View
                         if (window.innerWidth <= 968) {
+                            // On mobile: Switch to Library tab and navigate
+                            this.libraryFolderIndex = item.folderIndex;
+                            this.librarySubfolderIndex = item.subfolderIndex;
+                            this.libraryView = 'lectures';
+
+                            // Hide playlist view, show library view
                             document.getElementById('playlistView').classList.remove('active');
-                            document.getElementById('playerView').classList.add('active');
+                            document.getElementById('libraryView').classList.add('active');
+
+                            // Update bottom nav to Library
+                            document.querySelectorAll('.nav-item').forEach(navItem => {
+                                navItem.classList.remove('active');
+                            });
+                            document.querySelector('[data-nav="library"]').classList.add('active');
+
+                            // Render library view with the selected subfolder
+                            this.renderLibraryView();
+                        } else {
+                            // On desktop: Navigate in sidebar
+                            this.navigateToSubfolders(item.folderIndex);
+                            this.navigateToLectures(item.subfolderIndex);
                         }
                     }
                 });
