@@ -82,6 +82,7 @@ class AudioPlayer {
         this.recentlyPlayed = JSON.parse(localStorage.getItem('recentlyPlayed')) || [];
         this.queue = [];
         this.currentFilter = 'all';
+        this.usingBackupUrl = false; // Track if currently using backup URL
 
         // Initialize
         this.init();
@@ -709,6 +710,9 @@ class AudioPlayer {
 
         this.currentIndex = index;
         const track = this.flatPlaylist[index];
+
+        // Reset backup URL flag when playing a new track
+        this.usingBackupUrl = false;
 
         this.audio.src = track.url;
         this.trackTitle.textContent = track.title;
@@ -1757,6 +1761,10 @@ class AudioPlayer {
         }, 5000);
     }
 
+    showBackupError() {
+        this.showError('Cả link gốc và link backup đều không phát được');
+    }
+
     // ===== State Management =====
     saveState() {
         const state = {
@@ -1807,6 +1815,10 @@ class AudioPlayer {
                 if (index >= 0) {
                     this.currentIndex = index;
                     const track = this.flatPlaylist[index];
+
+                    // Reset backup URL flag when loading state
+                    this.usingBackupUrl = false;
+
                     this.audio.src = track.url;
                     this.trackTitle.textContent = track.title;
                     this.trackFolder.textContent = `${track.folder} • ${track.subfolder}`;
@@ -2114,6 +2126,25 @@ class AudioPlayer {
 
         // Error handling
         this.audio.addEventListener('error', (e) => {
+            // Try backup URL if available and not already using it
+            if (!this.usingBackupUrl && this.currentIndex >= 0) {
+                const track = this.flatPlaylist[this.currentIndex];
+                if (track && track.backupUrl) {
+                    console.log('Primary URL failed, trying backup URL...');
+                    this.usingBackupUrl = true;
+                    const currentTime = this.audio.currentTime || 0;
+                    this.audio.src = track.backupUrl;
+                    this.audio.currentTime = currentTime;
+                    this.audio.play().catch(err => {
+                        // If backup also fails, show error
+                        this.usingBackupUrl = false;
+                        this.showBackupError();
+                    });
+                    return;
+                }
+            }
+
+            // Show error message
             let errorMsg = 'Lỗi phát audio';
             switch(this.audio.error.code) {
                 case 1:
@@ -2130,6 +2161,7 @@ class AudioPlayer {
                     break;
             }
             this.showError(errorMsg);
+            this.usingBackupUrl = false;
         });
 
         // Window resize handler - switch between mobile and desktop views
