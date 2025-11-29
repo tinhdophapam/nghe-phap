@@ -1765,6 +1765,36 @@ class AudioPlayer {
         this.showError('Cả link gốc và link backup đều không phát được');
     }
 
+    // Convert Google Drive download link to streaming link
+    convertGoogleDriveUrl(url) {
+        if (!url) return url;
+
+        // Check if it's a Google Drive URL
+        if (url.includes('drive.google.com')) {
+            // Extract file ID from different Google Drive URL formats
+            let fileId = null;
+
+            // Format: https://drive.google.com/uc?export=download&id=FILE_ID
+            const downloadMatch = url.match(/[?&]id=([^&]+)/);
+            if (downloadMatch) {
+                fileId = downloadMatch[1];
+            }
+
+            // Format: https://drive.google.com/file/d/FILE_ID/view
+            const fileMatch = url.match(/\/file\/d\/([^\/]+)/);
+            if (fileMatch) {
+                fileId = fileMatch[1];
+            }
+
+            // If we found a file ID, convert to streaming URL
+            if (fileId) {
+                return `https://drive.google.com/uc?export=open&id=${fileId}`;
+            }
+        }
+
+        return url;
+    }
+
     // ===== State Management =====
     saveState() {
         const state = {
@@ -2133,7 +2163,11 @@ class AudioPlayer {
                     console.log('Primary URL failed, trying backup URL...');
                     this.usingBackupUrl = true;
                     const currentTime = this.audio.currentTime || 0;
-                    this.audio.src = track.backupUrl;
+
+                    // Convert Google Drive URL to streaming format
+                    const streamingUrl = this.convertGoogleDriveUrl(track.backupUrl);
+
+                    this.audio.src = streamingUrl;
                     this.audio.currentTime = currentTime;
                     this.audio.play().catch(err => {
                         // If backup also fails, show error
